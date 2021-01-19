@@ -1,0 +1,11 @@
+#Project configuration
+/.idea
+
+#Modules dir
+/node_modules
+
+#Configs
+configs
+
+#other
+other
