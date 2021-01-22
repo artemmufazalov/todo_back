@@ -57,7 +57,7 @@ UserSchema.pre('save', function (next) {
 
     if (!user.isModified('password')) return next();
 
-    bcrypt.hash(user.password, 10, function (err, hash) {
+    bcrypt.hash(user.password, parseInt(process.env.BCRYPT_SALT, 10), function (err, hash) {
         if (err) throw err;
 
         user.password = hash;
@@ -72,7 +72,7 @@ UserSchema.methods.generateConfirmationToken = function () {
         if (token) {
             return token;
         } else {
-            bcrypt.hash(user.email + new Date().toString(), 10, function (err, token) {
+            bcrypt.hash(user.email + new Date().toString(), parseInt(process.env.BCRYPT_SALT, 10), function (err, token) {
                 if (err) throw err
 
                 let confirmationToken = ConfirmationTokenModel({
@@ -99,7 +99,7 @@ UserSchema.methods.generateAuthToken = function () {
         name: user.name,
         email: user.email
     }, process.env.JWT_KEY, {
-        algorithm: 'HS256'
+        algorithm: process.env.JWT_ALGORITHM
     });
 
     let authToken = new AuthTokenModel({
@@ -139,7 +139,7 @@ UserSchema.statics.findByCredentials = function (email, password) {
 UserSchema.methods.generatePasswordResetToken = function () {
     let user = this;
 
-    bcrypt.hash(user.password + new Date().toString(), 10, function (err, token) {
+    bcrypt.hash(user.password + new Date().toString(), process.env.BCRYPT_SALT, function (err, token) {
         if (err) throw err
 
         let passwordResetToken = new PasswordResetTokenModel({

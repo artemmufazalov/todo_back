@@ -1,5 +1,7 @@
 const mongoose = require('mongoose')
 
+const {encrypt} = require("../core/crypto");
+
 const TaskSchema = new mongoose.Schema({
         userId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -41,6 +43,19 @@ const TaskSchema = new mongoose.Schema({
     {
         timestamps: true
     });
+
+TaskSchema.pre('save', function (next) {
+    const task = this;
+
+    if (task.isModified('name')){
+        task.name = encrypt(task.name);
+    }
+    if (task.isModified('description')){
+        task.description = encrypt(task.description);
+    }
+
+    next();
+});
 
 const TaskModel = mongoose.model("Task", TaskSchema);
 
