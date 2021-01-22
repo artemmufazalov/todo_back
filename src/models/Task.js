@@ -1,15 +1,16 @@
 const mongoose = require('mongoose')
 
 const TaskSchema = new mongoose.Schema({
-        owner: {
-            type: String,
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
             required: [true, "Task must have an owner"]
         },
         name: {
             type: String,
             required: [true, "Task name is required"]
         },
-        deadline_date: {
+        deadlineDate: {
             type: Date,
             required: [true, "Deadline date is required"]
         },
@@ -28,19 +29,18 @@ const TaskSchema = new mongoose.Schema({
             type: String,
             required: false
         },
-        is_completed: {
+        isCompleted: {
             type: Boolean,
             default: false,
             required: true
         },
-        date_completed: {
+        dateCompleted: {
             type: Date
         },
     },
     {
         timestamps: true
     });
-
 
 const TaskModel = mongoose.model("Task", TaskSchema);
 
