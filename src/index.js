@@ -1,13 +1,13 @@
 const express = require('express')
-const bodyParser = require('body-parser')
 
+const applyMiddlewares = require('./middlewares/applyMiddlewares')
 const createRoutes = require('./core/routes')
 
 require('./core/mongo.js')
 
 const app = express()
 
-app.use(bodyParser.json())
+applyMiddlewares(app)
 createRoutes(app)
 
 const port = process.env.PORT | 3000
