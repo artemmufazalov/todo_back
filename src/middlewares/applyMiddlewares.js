@@ -1,6 +1,6 @@
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const rateLimiter = require('express-rate-limiter');
+const rateLimit = require('express-rate-limit');
 
 const checkIsAuth = require('./checkIsAuth');
 
@@ -10,7 +10,7 @@ const corsOptions = {
     allowedHeaders: ["Content-Type","Access-Control-Allow-Origin","Authorisation"]
 };
 
-const limiter = rateLimiter({
+const limiter = rateLimit({
     windowMs: 10 * 1000, // 10 seconds
     max: 10 // limit each IP to 10 requests per 10 seconds
 });
