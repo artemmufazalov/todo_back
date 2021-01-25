@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const {encrypt} = require("../core/crypto");
 
 const TaskSchema = new mongoose.Schema({
-        userId: {
+        user: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: [true, "Task must have an owner"]

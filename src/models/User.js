@@ -4,8 +4,10 @@ const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
 
 const ConfirmationTokenModel = require('./ConfirmationToken')
-const PasswordResetTokenModel = require('./PasswordResetTokenModel')
-const AuthTokenModel = require('./AuthTokenModel')
+const PasswordResetTokenModel = require('./PasswordResetToken')
+const AuthTokenModel = require('./AuthToken')
+const CategoryModel = require('./Category')
+const TaskModel = require('./Task')
 
 const UserSchema = new mongoose.Schema({
     email: {
@@ -65,6 +67,26 @@ UserSchema.pre('save', function (next) {
     });
 });
 
+UserSchema.post('deleteOne', {document: true, query: false}, function () {
+    const user = this;
+
+    Promise.all([
+        ConfirmationTokenModel.deleteOne({user: mongoose.Types.ObjectId(user._id)}),
+        PasswordResetTokenModel.deleteOne({user: mongoose.Types.ObjectId(user._id)}),
+        AuthTokenModel.deleteMany({user: mongoose.Types.ObjectId(user._id)}),
+        CategoryModel.deleteMany({user: mongoose.Types.ObjectId(user._id)}),
+        TaskModel.deleteMany({user: mongoose.Types.ObjectId(user._id)})
+    ])
+        .then(() => {
+            console.log("User and all connected documents was deleted");
+        })
+        .catch((err) => {
+            throw new Error("Unable to delete connected documents")
+        })
+        .finally(() => {
+        })
+})
+
 UserSchema.methods.generateConfirmationToken = function () {
     const user = this;
 
@@ -84,6 +106,7 @@ UserSchema.methods.generateConfirmationToken = function () {
                     if (err) throw err
 
                     user.confirmationToken = mongoose.Types.ObjectId(token._id);
+                    user.save()
 
                     return token
                 });
@@ -111,16 +134,29 @@ UserSchema.methods.generateAuthToken = function () {
         if (err) throw err
 
         user.authTokens.push(mongoose.Types.ObjectId(token._id))
+        user.save()
 
         return token
     });
 }
 
 UserSchema.methods.updateAuthToken = function (authToken) {
-    AuthTokenModel.find({token: authToken}, function (err, token) {
-        token.expireAt = new Date();
+    AuthTokenModel.findOneAndUpdate(
+        {token: authToken},
+        {expireAt: new Date()},
+        function (err, token) {
+            return token;
+        });
+}
 
-        return token;
+UserSchema.methods.deleteAuthToken = function (authToken) {
+    AuthTokenModel.findOne({token: authToken}, (err, token) => {
+        token.deleteOne({}, () => {
+            this.authTokens.filter(token => {
+                return token !== mongoose.Types.ObjectId(token._id)
+            })
+            this.save()
+        });
     });
 }
 
@@ -151,6 +187,7 @@ UserSchema.methods.generatePasswordResetToken = function () {
             if (err) throw err
 
             user.passwordResetToken = mongoose.Types.ObjectId(token._id)
+            user.save()
 
             return token
         });

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 
 const CategorySchema = new mongoose.Schema({
-    userId: {
+    user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: [true, "Category must have an owner"]
@@ -18,6 +18,6 @@ const CategorySchema = new mongoose.Schema({
     timestamps: true
 });
 
-const CategoryModel = mongoose.model("Task", CategorySchema);
+const CategoryModel = mongoose.model("Category", CategorySchema);
 
 module.exports = CategoryModel;

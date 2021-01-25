@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken') ;
 const UserModel = require('../models/User')
 
-let allowedRoutesStrict = ['/user', '/user/login']
+let allowedRoutesStrict = ['/user/register', '/user/login']
 let allowedRoutes = ['/user/verify', '/user/password']
 
 let isRouteAllowed = (path) => {
@@ -50,6 +50,8 @@ const checkIsAuth = async (req, res, next) => {
                             resultCode: 1
                         });
                 } else {
+                    user.updateAuthToken(token);
+
                     req.user = user;
                     req.token = token;
                     console.log("Authorized request");
