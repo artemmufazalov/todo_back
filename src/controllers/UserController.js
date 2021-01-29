@@ -351,7 +351,7 @@ class UserController {
                                     if (err) {
                                         return res.status(500)
                                             .json({
-                                                message: "Some error occured",
+                                                message: "Some error occurred",
                                                 error: err,
                                                 resultCode: 1
                                             })
@@ -386,7 +386,7 @@ class UserController {
             })
     }
 
-    logout = (req, res) => {
+    logout = function (req, res) {
         const user = req.user
 
         user.deleteAuthToken(req.token)

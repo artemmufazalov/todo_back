@@ -10,6 +10,10 @@ const CategorySchema = new mongoose.Schema({
         type: String,
         required: [true, "Category name is required"]
     },
+    color: {
+        type: String,
+        required: true
+    },
     tasks: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "Task"

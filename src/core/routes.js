@@ -6,8 +6,9 @@ const userController = new UserController()
 
 module.exports = createRoutes = (app) => {
 
-    //app.get('/task/index', taskController.indexUserTasks)
-    //app.post('/task/create', taskController.create)
+    app.get('/task/index', taskController.indexUserTasks)
+    app.post('/category/create', taskController.createCategory)
+    app.post('/task/create', taskController.create)
     //app.post('/task/update', taskController.update)
     //app.delete('/task/delete', taskController.delete)
 
@@ -22,7 +23,9 @@ module.exports = createRoutes = (app) => {
     app.get('/user/verify', userController.verify)
     app.delete('/user/verify', userController.cancelRegistration)
 
-    //app.post('/user/password',userController.requestPasswordChange)
-    //app.put('/user/password',userController.changePassword)
+    //app.post('/user/password/change',userController.requestPasswordChange) //request change from profile page
+    //app.post('/user/password/restore', userController.requestPasswordRestore) //request change from login from
+    //app.put('/user/password/update',userController.changePassword) //update password
+
 
 }
