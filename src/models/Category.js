@@ -22,6 +22,24 @@ const CategorySchema = new mongoose.Schema({
     timestamps: true
 });
 
+CategorySchema.methods.updateCategoryData = function (newName, newColor, newTaskId, callback) {
+    const category = this
+
+    if (newName !== '') {
+        category.name = newName
+    }
+    if (newColor !== '') {
+        category.color = newColor
+    }
+    if (newTaskId !== '') {
+        category.tasks.push(newTaskId)
+    }
+
+    category.save((err, newCategory) => {
+        callback(err, newCategory)
+    })
+}
+
 const CategoryModel = mongoose.model("Category", CategorySchema);
 
 module.exports = CategoryModel;

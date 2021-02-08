@@ -1,17 +1,26 @@
 const TaskController = require('../controllers/TaskController')
 const UserController = require('../controllers/UserController')
+const CategoryController = require('../controllers/CategoryController')
 
 const taskController = new TaskController()
 const userController = new UserController()
+const categoryController = new CategoryController()
 
 module.exports = createRoutes = (app) => {
 
+    //Tasks
     app.get('/task/index', taskController.indexUserTasks)
-    app.post('/category/create', taskController.createCategory)
     app.post('/task/create', taskController.create)
-    //app.post('/task/update', taskController.update)
-    //app.delete('/task/delete', taskController.delete)
+    app.post('/task/update', taskController.updateTask)
+    app.post('/task/delete', taskController.deleteTask)
 
+    //Categories
+    app.get('/category/index', categoryController.indexCategories)
+    app.post('/category/create', categoryController.createCategory)
+    app.post('category/update', categoryController.updateCategory)
+    app.post('/category/delete', categoryController.deleteCategory)
+
+    //User
     app.get('/user/auth', userController.auth)
     app.post('/user/login', userController.login)
     app.delete('/user/logout', userController.logout)

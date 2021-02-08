@@ -194,6 +194,17 @@ UserSchema.methods.generatePasswordResetToken = function () {
     });
 }
 
+UserSchema.methods.cleanSensitive = function () {
+    let user = this.toObject()
+    const sensitiveFields = ['password', 'confirmationToken', 'authTokens', 'passwordResetToken']
+
+    sensitiveFields.forEach(fieldName => {
+        delete user[fieldName]
+    })
+
+    return user
+}
+
 const UserModel = mongoose.model("User", UserSchema);
 
 module.exports = UserModel

@@ -47,15 +47,34 @@ const TaskSchema = new mongoose.Schema({
 TaskSchema.pre('save', function (next) {
     const task = this;
 
-    if (task.isModified('name')){
+    if (task.isModified('name')) {
         task.name = encrypt(task.name);
     }
-    if (task.isModified('description')){
+    if (task.isModified('description')) {
         task.description = encrypt(task.description);
     }
 
     next();
 });
+
+TaskSchema.methods.updateTaskData = function (inputValues, callback) {
+    let task = this
+
+    if (!task.isCompleted && inputValues.isCompleted) {
+        task.isCompleted = true
+        task.dateCompleted = new Date()
+    }
+
+    Object.keys(inputValues).forEach(value => {
+        if (Object.keys(task).includes(value) && inputValues[value] && inputValues[value] !== ''){
+            task[value] = inputValues[value]
+        }
+    })
+
+    task.save((err, task) => {
+        callback(err, task)
+    })
+}
 
 const TaskModel = mongoose.model("Task", TaskSchema);
 
