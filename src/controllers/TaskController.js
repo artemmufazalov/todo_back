@@ -6,7 +6,7 @@ const {defaultServerError} = require('../utils/helpers/defaultResponses')
 
 class TaskController {
 
-    indexUserTasks = function (req, res) {
+    indexUserTasks (req, res) {
         let user = req.user
 
         UserModel.findById(user._id, {}, {})
@@ -33,7 +33,7 @@ class TaskController {
             })
     }
 
-    create = function (req, res) {
+    create (req, res) {
 
         let newTaskData = {
             user: req.user._id,
@@ -100,7 +100,7 @@ class TaskController {
             })
     }
 
-    updateTask = function (req, res) {
+    updateTask (req, res) {
 
         TaskModel.findById(req.body.id, {}, {}, (err, task) => {
             if (!task || err) {
@@ -166,7 +166,7 @@ class TaskController {
         })
     }
 
-    deleteTask = function (req, res) {
+    deleteTask (req, res) {
         TaskModel.deleteOne({_id: req.body._id}, (err, task) => {
             if (err) {
                 return defaultServerError(res, err)

@@ -3,7 +3,7 @@ const {defaultServerError} = require('../utils/helpers/defaultResponses')
 
 class CategoryController {
 
-    indexCategories = function (req, res) {
+    indexCategories (req, res) {
         const userId = req.user._id
 
         CategoryModel.find({user: userId}, (err, categories) => {
@@ -28,7 +28,7 @@ class CategoryController {
         })
     }
 
-    createCategory = function (req, res) {
+    createCategory (req, res) {
         const newCatData = {
             name: req.body.name,
             color: req.body.color,
@@ -63,7 +63,7 @@ class CategoryController {
         })
     }
 
-    updateCategory = function (req, res) {
+    updateCategory (req, res) {
         const newCatData = {
             newName: req.body.newName,
             newColor: req.body.newColor
@@ -98,7 +98,7 @@ class CategoryController {
         })
     }
 
-    deleteCategory = function (req, res) {
+    deleteCategory (req, res) {
         CategoryModel.deleteOne({user: req.user._id, name: req.body.name}, (err, category) => {
             if (!category) {
                 return res.status(404)

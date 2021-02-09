@@ -1,8 +1,10 @@
 const jwt = require('jsonwebtoken') ;
-const UserModel = require('../models/User')
 
-let allowedRoutesStrict = ['/user/register', '/user/login']
-let allowedRoutes = ['/user/verify', '/user/password']
+const UserModel = require('../models/User')
+const {defaultServerError} = require("../utils/helpers/defaultResponses");
+
+let allowedRoutesStrict = ['/user/register', '/user/login', 'user/password/update', 'user/password/restore']
+let allowedRoutes = ['/user/verify']
 
 let isRouteAllowed = (path) => {
     return allowedRoutes.reduce((res, curr) => res || path.toString().includes(curr), false) ||
@@ -19,6 +21,7 @@ const checkIsAuth = async (req, res, next) => {
         return res.status(403)
             .json({
                 message: "Authorization is required to access this resource",
+                messageRus: "Чтобы получить доступ, вам необходимо авторизоваться",
                 resultCode: 1,
             });
     }
@@ -30,6 +33,7 @@ const checkIsAuth = async (req, res, next) => {
             return res.status(401)
                 .json({
                     message: "Token is invalid or expired",
+                    messageRus: "Представленный токен более не действителен",
                     error: err,
                     resultCode: 1
                 })
@@ -39,22 +43,19 @@ const checkIsAuth = async (req, res, next) => {
                     return res.status(404)
                         .json({
                             message: "User associated with this token does not exist",
+                            messageRus: "Пользователь с данным токеном не существует",
                             error: err,
                             resultCode: 1
                         });
                 } else if (err) {
-                    return res.status(500)
-                        .json({
-                            message: "Some error occurred",
-                            error: err,
-                            resultCode: 1
-                        });
+                    return defaultServerError(res, err)
                 } else {
                     user.updateAuthToken(token);
 
                     req.user = user;
                     req.token = token;
                     console.log("Authorized request");
+
                     next();
                 }
             })

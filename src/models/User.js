@@ -78,19 +78,17 @@ UserSchema.post('deleteOne', {document: true, query: false}, function () {
         TaskModel.deleteMany({user: mongoose.Types.ObjectId(user._id)})
     ])
         .then(() => {
-            console.log("User and all connected documents was deleted");
+            console.log("User and all connected documents was deleted")
         })
         .catch((err) => {
             throw new Error("Unable to delete connected documents")
-        })
-        .finally(() => {
         })
 })
 
 UserSchema.methods.generateConfirmationToken = function () {
     const user = this;
 
-    ConfirmationTokenModel.findOne({userId: mongoose.Types.ObjectId(user._id)}, function (err, token) {
+    ConfirmationTokenModel.findOne({userId: user._id}, function (err, token) {
         if (token) {
             return token;
         } else {
@@ -149,26 +147,36 @@ UserSchema.methods.updateAuthToken = function (authToken) {
         });
 }
 
-UserSchema.methods.deleteAuthToken = function (authToken) {
+UserSchema.methods.deleteAuthToken = function (authToken, callback) {
     AuthTokenModel.findOne({token: authToken}, (err, token) => {
-        token.deleteOne({}, () => {
-            this.authTokens.filter(token => {
-                return token !== mongoose.Types.ObjectId(token._id)
-            })
-            this.save()
-        });
+        if (err){
+            return callback(err, null)
+        } else {
+            token.deleteOne(() => {
+                this.authTokens.filter(token => {
+                    return token !== token._id
+                })
+                this.save()
+
+                return callback(null, token)
+            });
+        }
     });
 }
 
-UserSchema.statics.findByCredentials = function (email, password) {
+UserSchema.statics.findByCredentials = function (email, password, callback) {
     UserModel.findOne({email: email}, (err, user) => {
-        if (!user) throw new Error("Invalid login credentials");
+        if (!user || err){
+            return callback(new Error("Invalid login credentials"), user)
+        }
 
         let isPasswordMatch = bcrypt.compare(password, user.password);
 
-        if (!isPasswordMatch) throw new Error("Invalid login credentials");
+        if (!isPasswordMatch) {
+            return callback(new Error("Invalid login credentials"), user)
+        }
 
-        return user
+        return callback(null, user)
     });
 }
 
