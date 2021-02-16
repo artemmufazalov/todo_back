@@ -55,20 +55,20 @@ const UserSchema = new mongoose.Schema({
 });
 
 UserSchema.pre('save', function (next) {
-    const user = this;
+    const user = this
 
-    if (!user.isModified('password')) return next();
+    if (!user.isModified('password')) return next()
 
     bcrypt.hash(user.password, parseInt(process.env.BCRYPT_SALT, 10), function (err, hash) {
-        if (err) throw err;
+        if (err) throw err
 
-        user.password = hash;
-        next();
+        user.password = hash
+        next()
     });
 });
 
 UserSchema.post('deleteOne', {document: true, query: false}, function () {
-    const user = this;
+    const user = this
 
     Promise.all([
         ConfirmationTokenModel.deleteOne({user: mongoose.Types.ObjectId(user._id)}),
@@ -80,43 +80,48 @@ UserSchema.post('deleteOne', {document: true, query: false}, function () {
         .then(() => {
             console.log("User and all connected documents was deleted")
         })
-        .catch((err) => {
+        .catch(() => {
             throw new Error("Unable to delete connected documents")
         })
 })
 
-UserSchema.methods.generateConfirmationToken = function () {
+UserSchema.methods.generateConfirmationToken = function (callback) {
     const user = this;
 
     ConfirmationTokenModel.findOne({userId: user._id}, function (err, token) {
         if (token) {
-            return token;
+            return callback(null, token.token)
         } else {
-            bcrypt.hash(user.email + new Date().toString(), parseInt(process.env.BCRYPT_SALT, 10), function (err, token) {
-                if (err) throw err
+            bcrypt.hash(user.email + new Date().toString(), parseInt(process.env.BCRYPT_SALT, 10), function (err, generatedToken) {
+                if (err) {
+                    return callback(err, null)
+                }
 
                 let confirmationToken = ConfirmationTokenModel({
-                    user: mongoose.Types.ObjectId(user._id),
-                    token: token
+                    user: user._id,
+                    token: generatedToken
                 });
 
-                confirmationToken.save(function (err, token) {
-                    if (err) throw err
+                confirmationToken.save(function (err, tokenDoc) {
+                    if (err) {
+                        return callback(err, null)
+                    }
 
-                    user.confirmationToken = mongoose.Types.ObjectId(token._id);
+                    user.confirmationToken = mongoose.Types.ObjectId(tokenDoc._id);
                     user.save()
 
-                    return token
+                    return callback(null, tokenDoc.token)
                 });
             });
         }
     });
 }
 
-UserSchema.methods.generateAuthToken = function () {
+UserSchema.methods.generateAuthToken = function (callback) {
     let user = this;
 
     let token = jwt.sign({
+        _id: user._id,
         name: user.name,
         email: user.email
     }, process.env.JWT_KEY, {
@@ -128,13 +133,20 @@ UserSchema.methods.generateAuthToken = function () {
         token: token
     })
 
-    authToken.save(function (err, token) {
-        if (err) throw err
+    authToken.save((err, tokenDoc) => {
+        if (err) {
+            return callback(err, null)
+        }
 
-        user.authTokens.push(mongoose.Types.ObjectId(token._id))
-        user.save()
+        user.authTokens.push(mongoose.Types.ObjectId(tokenDoc._id))
 
-        return token
+        user.save((err) => {
+            if (err) {
+                return callback(err, null)
+            } else {
+                return callback(null, tokenDoc.token)
+            }
+        })
     });
 }
 
@@ -142,14 +154,16 @@ UserSchema.methods.updateAuthToken = function (authToken) {
     AuthTokenModel.findOneAndUpdate(
         {token: authToken},
         {expireAt: new Date()},
-        function (err, token) {
-            return token;
+        function (err) {
+            if (err) {
+                throw err
+            }
         });
 }
 
 UserSchema.methods.deleteAuthToken = function (authToken, callback) {
     AuthTokenModel.findOne({token: authToken}, (err, token) => {
-        if (err){
+        if (err) {
             return callback(err, null)
         } else {
             token.deleteOne(() => {
@@ -158,7 +172,7 @@ UserSchema.methods.deleteAuthToken = function (authToken, callback) {
                 })
                 this.save()
 
-                return callback(null, token)
+                return callback(null, token.token)
             });
         }
     });
@@ -166,7 +180,7 @@ UserSchema.methods.deleteAuthToken = function (authToken, callback) {
 
 UserSchema.statics.findByCredentials = function (email, password, callback) {
     UserModel.findOne({email: email}, (err, user) => {
-        if (!user || err){
+        if (!user || err) {
             return callback(new Error("Invalid login credentials"), user)
         }
 
@@ -180,26 +194,34 @@ UserSchema.statics.findByCredentials = function (email, password, callback) {
     });
 }
 
-UserSchema.methods.generatePasswordResetToken = function () {
-    let user = this;
+UserSchema.methods.generatePasswordResetToken = function (callback) {
+    let user = this
 
     bcrypt.hash(user.password + new Date().toString(), process.env.BCRYPT_SALT, function (err, token) {
-        if (err) throw err
+        if (err) {
+            return callback(err, null)
+        }
 
         let passwordResetToken = new PasswordResetTokenModel({
             user: mongoose.Types.ObjectId(user._id),
             token: token
         });
 
-        passwordResetToken.save(function (err, token) {
-            if (err) throw err
+        passwordResetToken.save(function (err, tokenDoc) {
+            if (err) {
+                return callback(err, null)
+            }
 
-            user.passwordResetToken = mongoose.Types.ObjectId(token._id)
-            user.save()
-
-            return token
-        });
-    });
+            user.passwordResetToken = mongoose.Types.ObjectId(tokenDoc._id)
+            user.save((err) => {
+                if (err) {
+                    return callback(err, null)
+                } else {
+                    return callback(null, tokenDoc.token)
+                }
+            })
+        })
+    })
 }
 
 UserSchema.methods.cleanSensitive = function () {
@@ -211,6 +233,28 @@ UserSchema.methods.cleanSensitive = function () {
     })
 
     return user
+}
+
+UserSchema.methods.getTasks = function (callback) {
+    let user = this
+    return user.populate('tasksList').execPopulate()
+        .then(user => {
+            callback(null, user.tasksList)
+        })
+        .catch(err => {
+            callback(err, null)
+        })
+}
+
+UserSchema.methods.getCategories = function (callback) {
+    let user = this
+    user.populate('categoriesList').execPopulate()
+        .then(user => {
+            callback(null, user.categoriesList)
+        })
+        .catch(err => {
+            callback(err, null)
+        })
 }
 
 const UserModel = mongoose.model("User", UserSchema);

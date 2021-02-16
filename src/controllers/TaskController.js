@@ -81,10 +81,10 @@ class TaskController {
                                             .json({
                                                 message: "New task was added",
                                                 messageRus: "Новая задача была добавлена",
-                                                task: task.populate([{path: "category"}]),
+                                                task: task,
+                                                category: category,
                                                 resultCode: 0
                                             })
-
                                     }
                                 })
                         }
@@ -111,7 +111,7 @@ class TaskController {
                         resultCode: 1
                     })
             } else if (req.body.category && req.body.category !== '') {
-                CategoryModel.findOne({user: req.user._id, name: req.body.name}, (err, category) => {
+                CategoryModel.findOne({user: req.user._id, name: req.body.category}, (err, category) => {
                     if (!category || err) {
                         return res.status(409)
                             .json({
@@ -167,7 +167,7 @@ class TaskController {
     }
 
     deleteTask (req, res) {
-        TaskModel.deleteOne({_id: req.body._id}, (err, task) => {
+        TaskModel.deleteOne({_id: req.body._id}, (err) => {
             if (err) {
                 return defaultServerError(res, err)
             } else {

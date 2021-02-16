@@ -7,7 +7,7 @@ const checkIsAuth = require('./checkIsAuth');
 const corsOptions = {
     origin: true,
     methods: ["OPTIONS", "GET", "PUT", "POST", "DELETE"],
-    allowedHeaders: ["Content-Type","Access-Control-Allow-Origin","Authorisation"]
+    allowedHeaders: ["Content-Type","Access-Control-Allow-Origin","Authorisation", "x-access-token"]
 };
 
 const limiter = rateLimit({

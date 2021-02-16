@@ -15,7 +15,7 @@ const checkIsAuth = async (req, res, next) => {
 
     if (req.method === "OPTIONS" || isRouteAllowed(req.path)) {return next()}
 
-    const token = req.headers.Authorization;
+    const token = req.headers["x-access-token"] || req.headers["authorization"];
 
     if (!token) {
         return res.status(403)

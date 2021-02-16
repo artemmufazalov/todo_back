@@ -39,32 +39,35 @@ class UserController {
                         if (err) {
                             return defaultServerError(res, err)
                         } else {
-                            let confirmationToken = user.generateConfirmationToken()
-
-                            mailer.sendMail(createConfirmationEmail(process.env.NODEMAILER_USER, postData.email, user.username, confirmationToken),
-                                (err, info) => {
-                                    if (err) {
-                                        UserModel.findById(user._id, {}, {}, (err, user) => {
-                                            user.deleteOne({}, () => {
-                                                return res.status(500).json({
-                                                    message: "Some server error, registration could not be completed",
-                                                    messageRus: "На сервере произошла ошибка, регистрация не может быть завершена",
-                                                    resultCode: 1
+                            user.generateConfirmationToken((err, token) => {
+                                if (err) {
+                                    return defaultServerError(res, err)
+                                } else {
+                                    mailer.sendMail(createConfirmationEmail(process.env.NODEMAILER_USER, postData.email, user.username, token),
+                                        (err, info) => {
+                                            if (err) {
+                                                UserModel.findById(user._id, {}, {}, (err, user) => {
+                                                    user.deleteOne({}, () => {
+                                                        return res.status(500).json({
+                                                            message: "Some server error, registration could not be completed",
+                                                            messageRus: "На сервере произошла ошибка, регистрация не может быть завершена",
+                                                            resultCode: 1
+                                                        })
+                                                    })
+                                                })
+                                            } else {
+                                                return res.status(200).json({
+                                                    message: "User created successfully",
+                                                    messageRus: "Пользователь был успешно создан",
+                                                    nextMessage: "Email confirmation is required",
+                                                    nextMessageRus: "Требуется подтверждение email адреса",
+                                                    user: user.cleanSensitive(),
+                                                    resultCode: 0
                                                 });
-                                            });
-                                        })
-                                    } else {
-                                        return res.status(200).json({
-                                            message: "User created successfully",
-                                            messageRus: "Пользователь был успешно создан",
-                                            nextMessage: "Email confirmation is required",
-                                            nextMessageRus: "Требуется подтверждение email адреса",
-                                            user: user.cleanSensitive(),
-                                            resultCode: 0
+                                            }
                                         });
-                                    }
                                 }
-                            );
+                            })
                         }
                     })
                 }
@@ -99,14 +102,6 @@ class UserController {
         }
 
         const user = req.user;
-
-        if (!user) {
-            return res.status(403)
-                .json({
-                    message: "You are not authorized to do it",
-                    resultCode: 1
-                })
-        }
 
         user.username = postData.username;
 
@@ -155,34 +150,64 @@ class UserController {
                                     resultCode: 1
                                 });
                         } else if (user && user.confirmed) {
-                            let authToken = user.generateAuthToken()
-
-                            return res.status(200)
-                                .json({
-                                    message: "User with this hash have been already confirmed",
-                                    messageRus: "Аккаунт пользователя уже подтвержден",
-                                    user: user.populate(['tasksList', 'categoriesList']).cleanSensitive(),
-                                    authToken: authToken,
-                                    resultCode: 0
-                                });
-                        } else {
-                            user.confirmed = true
-                            let authToken = user.generateAuthToken()
-
-                            user.save((err, user) => {
+                            user.generateAuthToken((err, token) => {
                                 if (err) {
                                     return defaultServerError(res, err)
                                 } else {
-                                    return res.status(200)
-                                        .json({
-                                            message: "Account was confirmed successfully",
-                                            messageRus: "Аккаунт успешно подтвержден",
-                                            user: user.populate(['tasksList', 'categoriesList']).cleanSensitive(),
-                                            authToken: authToken,
-                                            resultCode: 0
+                                    user.getTasks((err1, tasks) => {
+                                        user.getCategories((err2, categories) => {
+                                            if (err1 || err2) {
+                                                return defaultServerError(res, [err1, err2])
+                                            } else {
+                                                return res.status(200)
+                                                    .json({
+                                                        message: "User with this hash have been already confirmed",
+                                                        messageRus: "Аккаунт пользователя уже подтвержден",
+                                                        user: user.cleanSensitive(),
+                                                        tasks: tasks,
+                                                        categories: categories,
+                                                        authToken: token,
+                                                        resultCode: 0
+                                                    })
+                                            }
                                         })
+                                    })
                                 }
                             })
+                        } else {
+                            user.generateAuthToken((err, token) => {
+                                if (err) {
+                                    return defaultServerError(res, err)
+                                } else {
+                                    user.confirmed = true
+                                    user.save((err, user) => {
+                                        if (err) {
+                                            return defaultServerError(res, err)
+                                        } else {
+                                            user.getTasks((err1, tasks) => {
+                                                user.getCategories((err2, categories) => {
+                                                    if (err1 || err2) {
+                                                        return defaultServerError(res, [err1, err2])
+                                                    } else {
+                                                        return res.status(200)
+                                                            .json({
+                                                                message: "Account was confirmed successfully",
+                                                                messageRus: "Аккаунт успешно подтвержден",
+                                                                user: user.cleanSensitive(),
+                                                                tasks: tasks,
+                                                                categories: categories,
+                                                                authToken: token,
+                                                                resultCode: 0
+                                                            })
+                                                    }
+                                                })
+                                            })
+
+                                        }
+                                    })
+                                }
+                            })
+
                         }
                     })
                 }
@@ -191,7 +216,7 @@ class UserController {
     }
 
     cancelRegistration(req, res) {
-        const confirmationToken = req.query.hash;
+        const confirmationToken = req.query.hash
 
         if (!confirmationToken) {
             return res.status(403)
@@ -228,8 +253,8 @@ class UserController {
                                             message: "User registration was canceled",
                                             messageRus: "Регистрация пользователя отменена",
                                             resultCode: 0
-                                        });
-                                });
+                                        })
+                                })
                             }
                         })
                 }
@@ -240,13 +265,24 @@ class UserController {
     auth(req, res) {
         let user = req.user
 
-        return res.status(200)
-            .json({
-                message: "Successful authentication",
-                messageRus: "Успешная авторизация",
-                user: user.populate(['tasksList', 'categoriesList']).cleanSensitive(),
-                resultCode: 0
-            });
+        user.getTasks((err1, tasks) => {
+            user.getCategories((err2, categories) => {
+                if (err1 || err2) {
+                    return defaultServerError(res, [err1, err2])
+                } else {
+                    return res.status(200)
+                        .json({
+                            message: "Successful authentication",
+                            messageRus: "Успешная авторизация",
+                            user: user.cleanSensitive(),
+                            tasks: tasks,
+                            categories: categories,
+                            resultCode: 0
+                        })
+                }
+            })
+        })
+
     }
 
     login(req, res) {
@@ -265,41 +301,74 @@ class UserController {
                         resultCode: 1
                     })
             } else {
-                let authToken = user.generateAuthToken();
+                user.generateAuthToken((err, token) => {
+                    if (err) {
+                        return defaultServerError(res, err)
+                    }
+                    if (user.confirmed) {
+                        user.getTasks((err1, tasks) => {
+                            user.getCategories((err2, categories) => {
+                                if (err1 || err2) {
+                                    return defaultServerError(res, [err1, err2])
+                                }
+                                return res.status(200)
+                                    .json({
+                                        message: "Logged in successfully",
+                                        messageRus: "Авторизация прошла успешно",
+                                        user: user.cleanSensitive(),
+                                        tasks,
+                                        categories,
+                                        authToken: token,
+                                        resultCode: 0
+                                    })
 
-                if (user.confirmed) {
-                    return res.status(200)
-                        .json({
-                            message: "Logged in successfully",
-                            messageRus: "Авторизация прошла успешно",
-                            user: user.populate(['tasksList', 'categoriesList']).cleanSensitive(),
-                            authToken: authToken,
-                            resultCode: 0
-                        });
-                } else {
-                    ConfirmationTokenModel.findOne({user: user._id},
-                        (err, token) => {
-                            if (!token || err) {
-                                token = user.generateConfirmationToken();
-                            }
-
-                            mailer.sendMail(createConfirmationEmail(process.env.NODEMAILER_USER, postData.email, user.username, token.token),
-                                (err, info) => {
-                                    if (err) {
-                                        return defaultServerError(res, err)
-                                    } else {
-                                        return res.status(200)
-                                            .json({
-                                                message: "Email confirmation is required",
-                                                messageRus: "Требуется подтверждение email",
-                                                user: user.populate(['tasksList', 'categoriesList']).cleanSensitive(),
-                                                resultCode: 0
+                            })
+                        })
+                    } else {
+                        ConfirmationTokenModel.findOne({user: user._id},
+                            (err, token) => {
+                                if (!token || err) {
+                                    user.generateConfirmationToken((err, token) => {
+                                        if (err) {
+                                            return defaultServerError(res, err)
+                                        }
+                                        mailer.sendMail(createConfirmationEmail(process.env.NODEMAILER_USER, postData.email, user.username, token),
+                                            (err, info) => {
+                                                if (err) {
+                                                    return defaultServerError(res, err)
+                                                } else {
+                                                    return res.status(200)
+                                                        .json({
+                                                            message: "Email confirmation is required",
+                                                            messageRus: "Требуется подтверждение email",
+                                                            user: user.cleanSensitive(),
+                                                            resultCode: 0
+                                                        })
+                                                }
                                             })
-                                    }
-                                });
-                        });
-                }
+                                    })
+                                } else {
+                                    token.prolongExpirationTime()
 
+                                    mailer.sendMail(createConfirmationEmail(process.env.NODEMAILER_USER, postData.email, user.username, token.token),
+                                        (err, info) => {
+                                            if (err) {
+                                                return defaultServerError(res, err)
+                                            } else {
+                                                return res.status(200)
+                                                    .json({
+                                                        message: "Email confirmation is required",
+                                                        messageRus: "Требуется подтверждение email",
+                                                        user: user.cleanSensitive(),
+                                                        resultCode: 0
+                                                    })
+                                            }
+                                        })
+                                }
+                            })
+                    }
+
+                })
             }
         })
     }
@@ -323,25 +392,30 @@ class UserController {
 
     requestPasswordChange(req, res) {
         let user = req.user
-        let hash = user.generatePasswordResetToken()
 
-        mailer.sendMail(createPasswordResetEmail(process.env.NODEMAILER_USER, user.email, user.username, hash),
-            (err, info) => {
-                if (err) {
-                    return res.status(500).json({
-                        message: "Some server error, cannot request password reset",
-                        messageRus: "Возникла ошибка, смена пароля невозможна",
-                        error: err,
-                        resultCode: 1
-                    });
-                } else {
-                    return res.status(200).json({
-                        message: "Password reset was requested. To complete you need follow the link in the email",
-                        nextMessage: "Запрос на смену пароля был получен. Чтобы продолжить, перейдите по ссылке в email",
-                        resultCode: 0
-                    });
-                }
-            })
+        user.generatePasswordResetToken((err, token) => {
+            if (err) {
+                return defaultServerError(res, err)
+            }
+
+            mailer.sendMail(createPasswordResetEmail(process.env.NODEMAILER_USER, user.email, user.username, token),
+                (err, info) => {
+                    if (err) {
+                        return res.status(500).json({
+                            message: "Some server error, cannot request password reset",
+                            messageRus: "Возникла ошибка, смена пароля невозможна",
+                            error: err,
+                            resultCode: 1
+                        });
+                    } else {
+                        return res.status(200).json({
+                            message: "Password reset was requested. To complete you need follow the link in the email",
+                            nextMessage: "Запрос на смену пароля был получен. Чтобы продолжить, перейдите по ссылке в email",
+                            resultCode: 0
+                        });
+                    }
+                })
+        })
     }
 
     requestPasswordRestore(req, res) {
@@ -356,25 +430,28 @@ class UserController {
                         resultCode: 1
                     })
             } else {
-                let hash = user.generatePasswordResetToken()
-
-                mailer.sendMail(createPasswordRestoreEmail(process.env.NODEMAILER_USER, user.email, user.username, hash),
-                    (err, info) => {
-                        if (err) {
-                            return res.status(500).json({
-                                message: "Some server error, cannot request password restore",
-                                messageRus: "Возникла ошибка, на данный момент восстановление пароля невозможно",
-                                error: err,
-                                resultCode: 1
-                            });
-                        } else {
-                            return res.status(200).json({
-                                message: "Password restore was requested. To complete you need follow the link in the email",
-                                nextMessage: "Запрос на восстановление пароля был получен. Чтобы продолжить, перейдите по ссылке в email",
-                                resultCode: 0
-                            });
-                        }
-                    })
+                user.generatePasswordResetToken((err, token) => {
+                    if (err) {
+                        return defaultServerError(res, err)
+                    }
+                    mailer.sendMail(createPasswordRestoreEmail(process.env.NODEMAILER_USER, user.email, user.username, token),
+                        (err, info) => {
+                            if (err) {
+                                return res.status(500).json({
+                                    message: "Some server error, cannot request password restore",
+                                    messageRus: "Возникла ошибка, на данный момент восстановление пароля невозможно",
+                                    error: err,
+                                    resultCode: 1
+                                });
+                            } else {
+                                return res.status(200).json({
+                                    message: "Password restore was requested. To complete you need follow the link in the email",
+                                    nextMessage: "Запрос на восстановление пароля был получен. Чтобы продолжить, перейдите по ссылке в email",
+                                    resultCode: 0
+                                });
+                            }
+                        })
+                })
             }
         })
     }
@@ -387,7 +464,7 @@ class UserController {
         if (!hash) {
             return res.status(403)
                 .json({
-                    message: "Hash was not provided",
+                    message: "Token was not provided",
                     messageRus: "Операция не может быть выполнена ввиду отсутствия токена",
                     resultCode: 1
                 })

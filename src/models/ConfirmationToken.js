@@ -18,6 +18,11 @@ const ConfirmationTokenSchema = new mongoose.Schema({
     timestamps: true
 })
 
+ConfirmationTokenSchema.methods.prolongExpirationTime = function (){
+    this.expireAt = new Date (Date.now() + 1000 * 60 * 60 *24)
+    this.save()
+}
+
 const ConfirmationTokenModel = mongoose.model("ConfirmationToken", ConfirmationTokenSchema)
 
 module.exports = ConfirmationTokenModel

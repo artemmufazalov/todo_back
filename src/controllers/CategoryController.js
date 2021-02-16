@@ -1,5 +1,6 @@
 const CategoryModel = require('../models/Category')
 const {defaultServerError} = require('../utils/helpers/defaultResponses')
+const {cleanObjectFields} = require("../utils/helpers/cleanObjectFields")
 
 class CategoryController {
 
@@ -10,7 +11,7 @@ class CategoryController {
             if (!categories) {
                 return res.status(404)
                     .json({
-                        message: "Categories was not found",
+                        message: "Categories were not found",
                         messageRus: "Не было найдено ни одной созданной категории",
                         resultCode: 1
                     })
@@ -29,22 +30,27 @@ class CategoryController {
     }
 
     createCategory (req, res) {
+        let user = req.user
+
         const newCatData = {
             name: req.body.name,
             color: req.body.color,
-            user: req.user._id
+            user: user._id
         }
 
-        CategoryModel.findOne({name: req.body.name, user: req.user._id}, (err, existingCat) => {
+        CategoryModel.findOne({name: req.body.name, user: user._id}, (err, existingCat) => {
             if (!existingCat || err) {
                 let newCategory = new CategoryModel(newCatData)
                 newCategory.save()
                     .then((category) => {
+                        user.categoriesList.push(category._id)
+                        user.save()
+
                         return res.status(200)
                             .json({
                                 message: "New category was created successfully",
                                 messageRus: "Новая категория была успешно создана",
-                                category: category.select('-user', '-tasks'),
+                                category: cleanObjectFields(category, ['user', 'tasks']),
                                 resultCode: 0
                             })
                     })
@@ -56,7 +62,7 @@ class CategoryController {
                     .json({
                         message: "Category with this name already exists",
                         messageRus: "Категория с таким именем уже существует",
-                        category: existingCat.select('-user'),
+                        category: cleanObjectFields(existingCat, ['user', 'tasks']),
                         resultCode: 1
                     })
             }
@@ -65,8 +71,8 @@ class CategoryController {
 
     updateCategory (req, res) {
         const newCatData = {
-            newName: req.body.newName,
-            newColor: req.body.newColor
+            newName: req.body.name,
+            newColor: req.body.color
         }
 
         CategoryModel.findOne({user: req.user._id, name: req.body.name}, (err, category) => {
