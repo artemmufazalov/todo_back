@@ -2,7 +2,7 @@ const crypto = require('crypto');
 
 const key = process.env.TASKS_ENCRYPTION_KEY
 const algorithm = process.env.TASKS_ENCRYPTION_ALGORITHM
-const ivLength = process.env.TASKS_ENCRYPTION_IV_LENGTH
+const ivLength = parseInt(process.env.TASKS_ENCRYPTION_IV_LENGTH)
 
 function encrypt(text) {
     let iv = crypto.randomBytes(ivLength);

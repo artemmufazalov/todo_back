@@ -5,6 +5,7 @@ const mailer = require('../core/nodemailer');
 const UserModel = require('../models/User');
 const ConfirmationTokenModel = require('../models/ConfirmationToken');
 const PasswordResetTokenModel = require('../models/PasswordResetToken');
+const {cleanObjectFields} = require("../utils/helpers/cleanObjectFields");
 
 class UserController {
 
@@ -163,9 +164,9 @@ class UserController {
                                                     .json({
                                                         message: "User with this hash have been already confirmed",
                                                         messageRus: "Аккаунт пользователя уже подтвержден",
-                                                        user: user.cleanSensitive(),
-                                                        tasks: tasks,
-                                                        categories: categories,
+                                                        user: cleanObjectFields(user.cleanSensitive(), ['tasksList', 'categoriesList', 'createdAt', 'updatedAt', '__v']),
+                                                        tasks: tasks.map(task => cleanObjectFields(task.returnDecrypted(), ['user','updatedAt', '__v'])),
+                                                        categories: cleanObjectFields(categories, ['tasks', 'createdAt', 'updatedAt', 'user', '_v']),
                                                         authToken: token,
                                                         resultCode: 0
                                                     })
@@ -193,9 +194,9 @@ class UserController {
                                                             .json({
                                                                 message: "Account was confirmed successfully",
                                                                 messageRus: "Аккаунт успешно подтвержден",
-                                                                user: user.cleanSensitive(),
-                                                                tasks: tasks,
-                                                                categories: categories,
+                                                                user: cleanObjectFields(user.cleanSensitive(), ['tasksList', 'categoriesList', 'createdAt', 'updatedAt', '__v']),
+                                                                tasks: tasks.map(task => cleanObjectFields(task.returnDecrypted(), ['user','updatedAt', '__v'])),
+                                                                categories: cleanObjectFields(categories, ['tasks', 'createdAt', 'updatedAt', 'user', '_v']),
                                                                 authToken: token,
                                                                 resultCode: 0
                                                             })
@@ -274,9 +275,9 @@ class UserController {
                         .json({
                             message: "Successful authentication",
                             messageRus: "Успешная авторизация",
-                            user: user.cleanSensitive(),
-                            tasks: tasks,
-                            categories: categories,
+                            user: cleanObjectFields(user.cleanSensitive(), ['tasksList', 'categoriesList', 'createdAt', 'updatedAt', '__v']),
+                            tasks: tasks.map(task => cleanObjectFields(task.returnDecrypted(), ['user','updatedAt', '__v'])),
+                            categories: categories.map(category => cleanObjectFields(category, ['createdAt', 'updatedAt', 'user', '__v'])),
                             resultCode: 0
                         })
                 }
@@ -315,9 +316,9 @@ class UserController {
                                     .json({
                                         message: "Logged in successfully",
                                         messageRus: "Авторизация прошла успешно",
-                                        user: user.cleanSensitive(),
-                                        tasks,
-                                        categories,
+                                        user: cleanObjectFields(user.cleanSensitive(), ['tasksList', 'categoriesList', 'createdAt', 'updatedAt', '__v']),
+                                        tasks: tasks.map(task => cleanObjectFields(task.returnDecrypted(), ['user','updatedAt', '__v'])),
+                                        categories: cleanObjectFields(categories, ['tasks', 'createdAt', 'updatedAt', 'user', '_v']),
                                         authToken: token,
                                         resultCode: 0
                                     })

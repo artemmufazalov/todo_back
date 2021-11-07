@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 
-const {encrypt} = require("../core/crypto");
+const {encrypt, decrypt} = require("../core/crypto");
 
 const TaskSchema = new mongoose.Schema({
         user: {
@@ -17,7 +17,8 @@ const TaskSchema = new mongoose.Schema({
             required: [true, "Deadline date is required"]
         },
         category: {
-            type: String,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Category",
             required: [true, "Task category is required"]
         },
         importance: {
@@ -34,7 +35,6 @@ const TaskSchema = new mongoose.Schema({
         isCompleted: {
             type: Boolean,
             default: false,
-            required: true
         },
         dateCompleted: {
             type: Date
@@ -45,13 +45,13 @@ const TaskSchema = new mongoose.Schema({
     });
 
 TaskSchema.pre('save', function (next) {
-    const task = this;
+    const task = this
 
     if (task.isModified('name')) {
-        task.name = encrypt(task.name);
+        task.name = encrypt(task.name)
     }
     if (task.isModified('description')) {
-        task.description = encrypt(task.description);
+        task.description = encrypt(task.description)
     }
 
     next();
@@ -74,6 +74,15 @@ TaskSchema.methods.updateTaskData = function (inputValues, callback) {
     task.save((err, task) => {
         callback(err, task)
     })
+}
+
+TaskSchema.methods.returnDecrypted = function () {
+    let task = this
+
+    task.name = decrypt(task.name)
+    task.description = decrypt(task.description)
+
+    return task
 }
 
 const TaskModel = mongoose.model("Task", TaskSchema);

@@ -257,6 +257,17 @@ UserSchema.methods.getCategories = function (callback) {
         })
 }
 
+UserSchema.methods.populateDocWithTasksAndCategories = function (callback) {
+    let user = this
+    user.populate('tasksList', 'categoriesList').execPopulate()
+        .then(user => {
+            callback(null, user)
+        })
+        .catch(err => {
+            callback(err, null)
+        })
+}
+
 const UserModel = mongoose.model("User", UserSchema);
 
 module.exports = UserModel

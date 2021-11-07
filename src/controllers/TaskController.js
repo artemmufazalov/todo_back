@@ -10,7 +10,7 @@ class TaskController {
         let user = req.user
 
         UserModel.findById(user._id, {}, {})
-            .populate([{path: 'tasksList', select: ['-user',]}, {path: 'categoriesList', select: ['-user', '-tasks']}])
+            .populate([{path: 'tasksList', select: ['-user',]}, {path: 'categoriesList', select: ['-user']}])
             .exec((err, user) => {
                 if (err) {
                     return defaultServerError(res, err)
@@ -39,8 +39,8 @@ class TaskController {
             user: req.user._id,
             name: req.body.name,
             deadlineDate: new Date(req.body.deadlineDate),
-            importance: req.body.importance,
-            description: req.body.description,
+            importance: parseInt(req.body.importance),
+            description: req.body.description ? req.body.description : '',
         }
 
         UserModel.findById(req.user._id)
@@ -58,7 +58,8 @@ class TaskController {
                             resultCode: 1
                         })
                 } else if (newCatsList.length === 1) {
-                    newTaskData.categody = newCatsList[0]._id
+                    console.log(newCatsList[0]._id)
+                    newTaskData.category = newCatsList[0]._id
 
                     let newTask = new TaskModel(newTaskData)
 
@@ -73,15 +74,18 @@ class TaskController {
                                     } else {
                                         category.tasks.push(task._id)
                                         user.tasksList.push(task._id)
-                                        Promise.all([user.save, category.save]).catch((err) => {
+                                        try{
+                                            user.save()
+                                            category.save()
+                                        } catch (err){
                                             return defaultServerError(res, err)
-                                        })
+                                        }
 
                                         return res.status(200)
                                             .json({
                                                 message: "New task was added",
                                                 messageRus: "Новая задача была добавлена",
-                                                task: task,
+                                                task: task.returnDecrypted(),
                                                 category: category,
                                                 resultCode: 0
                                             })
@@ -135,7 +139,7 @@ class TaskController {
                                     .json({
                                         message: "Task was updated successfully",
                                         messageRus: "Задача успешно обновлена",
-                                        task: task,
+                                        task: task.returnDecrypted(),
                                         resultCode: 0
                                     })
                             }
@@ -157,7 +161,7 @@ class TaskController {
                             .json({
                                 message: "Task was updated successfully",
                                 messageRus: "Задача успешно обновлена",
-                                task: task,
+                                task: task.returnDecrypted(),
                                 resultCode: 0
                             })
                     }

@@ -1,11 +1,13 @@
 module.exports = {
     cleanObjectFields: (obj, fieldsArray) => {
-        let instance = obj.toObject()
+        if (!obj){
+            return obj
+        }
 
         fieldsArray.forEach(fieldName => {
-            delete instance[fieldName]
+            delete obj[fieldName]
         })
 
-        return instance
+        return obj
     }
 }
